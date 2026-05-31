@@ -747,6 +747,18 @@ window.setSkuType    = function(v) { S.skType = v; document.querySelectorAll('.c
 window.setPerSkuType = function(v) { S.pmType = v; const st=skuTotals(),g=Object.values(st).reduce((a,b)=>a+b,0); renderPerSku(st,g); };
 
 // ── Load ──────────────────────────────────────────────────────────────────────
+async function fetchCSV(url) {
+  const bust = '&_=' + Date.now();
+  const r = await fetch(url + bust, {
+    method: 'GET',
+    mode: 'cors',
+    credentials: 'omit',
+    headers: { 'Accept': 'text/csv, text/plain, */*' }
+  });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.text();
+}
+
 (async () => {
   const main = document.querySelector('.main');
   const loading = document.createElement('div');
@@ -755,22 +767,26 @@ window.setPerSkuType = function(v) { S.pmType = v; const st=skuTotals(),g=Object
   main.prepend(loading);
 
   try {
-    const [qr, ar] = await Promise.all([fetch(QURL), fetch(AURL)]);
-    if (!qr.ok || !ar.ok) throw new Error(`HTTP ${qr.status} / ${ar.status}`);
-    const [qt, at] = await Promise.all([qr.text(), ar.text()]);
+    const [qt, at] = await Promise.all([fetchCSV(QURL), fetchCSV(AURL)]);
     S.qty = processSheet(parseCSV(qt));
     S.amt = processSheet(parseCSV(at));
     S.dates = S.amt.dates;
     S.data  = S.amt.data;
     loading.remove();
-    if (!S.dates.length) throw new Error('No data rows found — check sheet tab names match exactly.');
-    document.getElementById('lastUpdated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' }) + ' · ' + new Date().toLocaleDateString('en-GB');
+    if (!S.dates.length) throw new Error('No data rows — check sheet tab names: "Sales Qty (Units)" and "Sales Amount (NTD)"');
+    document.getElementById('lastUpdated').textContent =
+      'Updated ' + new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' }) +
+      ' · ' + new Date().toLocaleDateString('en-GB');
     render();
   } catch(e) {
     loading.remove();
     const err = document.createElement('div');
     err.className = 'error-state';
-    err.innerHTML = `<strong>Could not load data.</strong><br><br>Make sure the Google Sheet is set to <em>Anyone with the link → Viewer</em>.<br><br>Error: ${e.message}`;
+    err.innerHTML = `<strong>Could not load data.</strong><br><br>
+      Check: (1) Sheet is set to <em>Anyone with the link → Viewer</em>, 
+      (2) Tab names are exactly <code>Sales Qty (Units)</code> and <code>Sales Amount (NTD)</code>.<br><br>
+      <strong>Error:</strong> ${e.message}<br><br>
+      <strong>Debug:</strong> Open browser console (F12) for details.`;
     main.prepend(err);
   }
 })();
