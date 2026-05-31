@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>lilyeve × Watsons TW — Live Sales Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f9fafb;
+    --surface: #ffffff;
+    --border: #e5e7eb;
+    --text: #111827;
+    --text-2: #6b7280;
+    --text-3: #9ca3af;
+    --gt-amp: #378ADD;
+    --gt-sh2: #1D9E75;
+    --gt-sh5: #D85A30;
+    --st-sh5: #BA7517;
+    --st-amp: #D4537E;
+    --up: #1D9E75;
+    --down: #D85A30;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* HEADER */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .header-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--up);
+    box-shadow: 0 0 0 3px rgba(29,158,117,0.2);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{box-shadow:0 0 0 3px rgba(29,158,117,0.2)} 50%{box-shadow:0 0 0 6px rgba(29,158,117,0.08)} }
+  .header h1 { font-size: 14px; font-weight: 600; color: var(--text); letter-spacing: -0.01em; }
+  .header-sub { font-size: 11px; color: var(--text-2); margin-top: 1px; font-family: 'DM Mono', monospace; }
+  .header-time { font-size: 11px; color: var(--text-3); font-family: 'DM Mono', monospace; }
+
+  /* MAIN */
+  .main { max-width: 1100px; margin: 0 auto; padding: 24px 28px; }
+
+  /* FLAGS */
+  .flag-bar { margin-bottom: 16px; display: flex; flex-direction: column; gap: 6px; }
+  .flag {
+    background: #fffbeb; border: 1px solid #fcd34d;
+    border-radius: var(--radius-sm); padding: 8px 12px;
+    font-size: 12px; color: #92400e;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .flag::before { content: '⚠'; font-size: 13px; }
+
+  /* CONTROLS */
+  .controls {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .control-group { display: flex; gap: 6px; align-items: center; }
+  .control-label { font-size: 11px; color: var(--text-2); font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; margin-right: 4px; }
+  .btn-group { display: flex; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+  .btn-group button {
+    padding: 5px 13px; font-size: 12px; font-weight: 500;
+    background: transparent; border: none; cursor: pointer;
+    color: var(--text-2); font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+  }
+  .btn-group button + button { border-left: 1px solid var(--border); }
+  .btn-group button.active { background: var(--text); color: #fff; }
+  .btn-group button:hover:not(.active) { background: var(--bg); color: var(--text); }
+
+  /* METRIC CARDS */
+  .metric-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+  }
+  .metric-card .mc-label {
+    font-size: 10px; font-weight: 600; color: var(--text-2);
+    letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px;
+  }
+  .metric-card .mc-value {
+    font-size: 24px; font-weight: 600; color: var(--text);
+    letter-spacing: -0.02em; line-height: 1;
+    font-family: 'DM Mono', monospace;
+  }
+  .metric-card .mc-sub { font-size: 11px; color: var(--text-2); margin-top: 5px; }
+  .mc-sub .up { color: var(--up); font-weight: 500; }
+  .mc-sub .down { color: var(--down); font-weight: 500; }
+
+  /* CHART SECTIONS */
+  .chart-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 16px;
+  }
+  .section-header {
+    display: flex; align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    flex-wrap: wrap; gap: 8px;
+  }
+  .section-title {
+    font-size: 11px; font-weight: 600; color: var(--text-2);
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .chart-toggle { display: flex; gap: 4px; }
+  .chart-toggle button {
+    padding: 3px 10px; font-size: 11px; font-weight: 500;
+    background: transparent; border: 1px solid var(--border);
+    border-radius: 4px; cursor: pointer; color: var(--text-2);
+    font-family: 'DM Sans', sans-serif; transition: all 0.15s;
+  }
+  .chart-toggle button.active { border-color: var(--text); color: var(--text); background: var(--bg); }
+  .chart-toggle button:hover:not(.active) { background: var(--bg); }
+  .chart-wrap { position: relative; }
+
+  /* LEGEND */
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    margin-bottom: 10px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-2); }
+  .legend-swatch { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+  /* WOW */
+  .wow-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+  .wow-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+  }
+  .wow-sku { font-size: 10px; font-weight: 600; color: var(--text-2); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 4px; }
+  .wow-val { font-size: 14px; font-weight: 600; color: var(--text); font-family: 'DM Mono', monospace; }
+  .wow-pct { font-size: 11px; margin-top: 2px; font-weight: 500; }
+
+  /* PRODUCT MIX */
+  .mix-grid { display: grid; grid-template-columns: 200px 1fr; gap: 20px; align-items: start; }
+  .donut-container { display: flex; flex-direction: column; align-items: center; }
+  .donut-legend { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; width: 100%; }
+  .donut-legend-item { display: flex; align-items: center; justify-content: space-between; font-size: 11px; }
+  .donut-legend-item .dl-left { display: flex; align-items: center; gap: 6px; color: var(--text-2); }
+  .donut-legend-item .dl-pct { font-weight: 600; color: var(--text); font-family: 'DM Mono', monospace; }
+
+  /* SKU BAR (horizontal) */
+  .sku-bars { display: flex; flex-direction: column; gap: 9px; }
+  .sku-bar-row { display: flex; align-items: center; gap: 10px; }
+  .sku-bar-label { font-size: 11px; color: var(--text-2); width: 62px; flex-shrink: 0; text-align: right; }
+  .sku-bar-track { flex: 1; height: 7px; background: var(--bg); border-radius: 4px; overflow: hidden; border: 1px solid var(--border); }
+  .sku-bar-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+  .sku-bar-meta { font-size: 11px; color: var(--text-2); width: 120px; flex-shrink: 0; font-family: 'DM Mono', monospace; }
+
+  /* PIE LEGEND */
+  .pie-legend { display: flex; flex-direction: column; gap: 7px; margin-top: 12px; }
+  .pie-legend-item { display: flex; align-items: center; justify-content: space-between; font-size: 11px; }
+  .pie-legend-left { display: flex; align-items: center; gap: 6px; color: var(--text-2); }
+  .pie-legend-pct { font-weight: 600; color: var(--text); font-family: 'DM Mono', monospace; }
+
+  /* LOADING / ERROR */
+  .loading-state {
+    text-align: center; padding: 60px 20px;
+    color: var(--text-2); font-size: 13px;
+  }
+  .loading-spinner {
+    width: 28px; height: 28px;
+    border: 2px solid var(--border);
+    border-top-color: var(--text);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .error-state {
+    background: #fef2f2; border: 1px solid #fecaca;
+    border-radius: var(--radius); padding: 20px;
+    color: #991b1b; font-size: 13px; line-height: 1.6;
+  }
+
+  @media (max-width: 768px) {
+    .main { padding: 16px; }
+    .metric-grid { grid-template-columns: repeat(2, 1fr); }
+    .wow-grid { grid-template-columns: repeat(2, 1fr); }
+    .mix-grid { grid-template-columns: 1fr; }
+    .header { padding: 12px 16px; }
+  }
+  @media (max-width: 480px) {
+    .metric-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="header-dot"></div>
+    <div>
+      <h1>lilyeve × Watsons TW — Live Sales Dashboard</h1>
+      <div class="header-sub">Watsons TW · Launch 21 May 2026 · 5 SKUs</div>
+    </div>
+  </div>
+  <div class="header-time" id="lastUpdated">Loading…</div>
+</div>
+
+<div class="main">
+  <div id="flagBar" class="flag-bar"></div>
+
+  <div class="controls">
+    <div class="control-group">
+      <span class="control-label">Period</span>
+      <div class="btn-group" id="periodToggle">
+        <button class="active" onclick="setPeriod('daily')">Daily</button>
+        <button onclick="setPeriod('weekly')">Weekly</button>
+        <button onclick="setPeriod('monthly')">Monthly</button>
+      </div>
+    </div>
+    <div class="control-group">
+      <span class="control-label">View</span>
+      <div class="btn-group" id="modeToggle">
+        <button onclick="setMode('units')">Units</button>
+        <button class="active" onclick="setMode('revenue')">Revenue (NTD)</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="metric-grid">
+    <div class="metric-card">
+      <div class="mc-label" id="mc1label">Total Revenue</div>
+      <div class="mc-value" id="mc1value">—</div>
+      <div class="mc-sub" id="mc1sub">—</div>
+    </div>
+    <div class="metric-card">
+      <div class="mc-label" id="mc2label">Yesterday</div>
+      <div class="mc-value" id="mc2value">—</div>
+      <div class="mc-sub" id="mc2sub">—</div>
+    </div>
+    <div class="metric-card">
+      <div class="mc-label">GT Ampoule Share</div>
+      <div class="mc-value" id="mc3value">—</div>
+      <div class="mc-sub" id="mc3sub">—</div>
+    </div>
+    <div class="metric-card">
+      <div class="mc-label">Daily Avg</div>
+      <div class="mc-value" id="mc4value">—</div>
+      <div class="mc-sub" id="mc4sub">—</div>
+    </div>
+  </div>
+
+  <!-- Total Sales Chart -->
+  <div class="chart-section">
+    <div class="section-header">
+      <span class="section-title">Total Sales — All SKUs</span>
+      <div class="chart-toggle">
+        <button class="active" onclick="setTotalType('bar')">Bar</button>
+        <button onclick="setTotalType('line')">Line</button>
+      </div>
+    </div>
+    <div class="chart-wrap" style="height:220px">
+      <canvas id="cTotal"></canvas>
+    </div>
+  </div>
+
+  <!-- SKU Chart -->
+  <div class="chart-section">
+    <div class="section-header">
+      <span class="section-title">Sales by SKU</span>
+      <div class="chart-toggle">
+        <button class="active" onclick="setSkuType('line')">Line</button>
+        <button onclick="setSkuType('bar')">Bar</button>
+        <button onclick="setSkuType('stacked')">Stacked</button>
+      </div>
+    </div>
+    <div class="legend" id="skuLegend"></div>
+    <div class="chart-wrap" style="height:240px">
+      <canvas id="cSku"></canvas>
+    </div>
+  </div>
+
+  <!-- WoW -->
+  <div class="chart-section" id="wowSection" style="display:none">
+    <div class="section-header">
+      <span class="section-title" id="wowTitle">Week-on-Week</span>
+    </div>
+    <div class="wow-grid" id="wowGrid"></div>
+  </div>
+
+  <!-- Product Mix -->
+  <div class="chart-section">
+    <div class="section-header">
+      <span class="section-title">Product Line Split</span>
+    </div>
+    <div class="mix-grid">
+      <div class="donut-container">
+        <div class="chart-wrap" style="height:160px;width:160px">
+          <canvas id="cDonut"></canvas>
+        </div>
+        <div class="donut-legend" id="donutLegend"></div>
+      </div>
+      <div>
+        <div class="section-header" style="margin-bottom:14px">
+          <span class="section-title">Total per SKU</span>
+          <div class="chart-toggle">
+            <button class="active" onclick="setPerSkuType('bar')">Bar</button>
+            <button onclick="setPerSkuType('pie')">Pie</button>
+          </div>
+        </div>
+        <div id="perSkuBar" class="sku-bars"></div>
+        <div id="perSkuPie" style="display:none">
+          <div class="chart-wrap" style="height:180px;width:180px;margin:0 auto">
+            <canvas id="cPie"></canvas>
+          </div>
+          <div class="pie-legend" id="pieLegend"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+Chart.register(ChartDataLabels);
+
+const SKUS = ['325512','325511','325510','325513','325514'];
+const META = {
+  '325512': { name:'GT Ampoule 100ml', short:'GT Amp',  line:'GROW:TURN',  color:'#378ADD' },
+  '325511': { name:'GT Shampoo 200ml', short:'GT Sh200', line:'GROW:TURN',  color:'#1D9E75' },
+  '325510': { name:'GT Shampoo 500ml', short:'GT Sh500', line:'GROW:TURN',  color:'#D85A30' },
+  '325513': { name:'ST Shampoo 500ml', short:'ST Sh500', line:'SCALP:TURN', color:'#BA7517' },
+  '325514': { name:'ST Ampoule 100ml', short:'ST Amp',  line:'SCALP:TURN', color:'#D4537E' }
+};
+const SID = '1tiS3LevIPmNrBAzdwowBXWjk9FB6JVu1oLyvUxeLsNc';
+const QURL = `https://docs.google.com/spreadsheets/d/${SID}/gviz/tq?tqx=out:csv&sheet=Sales%20Qty%20(Units)`;
+const AURL = `https://docs.google.com/spreadsheets/d/${SID}/gviz/tq?tqx=out:csv&sheet=Sales%20Amount%20(NTD)`;
+
+let S = {
+  mode: 'revenue', period: 'daily',
+  tType: 'bar', skType: 'line', pmType: 'bar',
+  qty: null, amt: null, dates: [], data: {},
+  charts: {}
+};
+
+// ── CSV parsing ──────────────────────────────────────────────────────────────
+function parseCSV(text) {
+  return text.trim().split('\n').map(line => {
+    const cols = []; let cur = ''; let inQ = false;
+    for (const c of line) {
+      if (c === '"') { inQ = !inQ; }
+      else if (c === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+      else { cur += c; }
+    }
+    cols.push(cur.trim());
+    return cols;
+  });
+}
+
+function processSheet(rows) {
+  const hdr = rows[0];
+  const dates = [];
+  for (let i = 1; i < hdr.length; i++) {
+    const d = hdr[i].replace(/"/g, '').trim();
+    if (d) dates.push(d);
+  }
+  const data = {};
+  for (let r = 1; r < rows.length; r++) {
+    const row = rows[r];
+    const raw = row[0].replace(/"/g, '').trim();
+    const id = SKUS.find(x => raw.includes(x));
+    if (!id) continue;
+    data[id] = [];
+    for (let c = 1; c <= dates.length; c++) {
+      data[id].push(parseFloat((row[c] || '0').replace(/"/g,'').replace(/,/g,'')) || 0);
+    }
+  }
+  return { dates, data };
+}
+
+// ── Grouping ─────────────────────────────────────────────────────────────────
+function weekKey(dateStr) {
+  const [m, d] = dateStr.split('/').map(Number);
+  const dt = new Date(2026, m - 1, d);
+  const day = dt.getDay();
+  const mon = new Date(dt); mon.setDate(d - (day === 0 ? 6 : day - 1));
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  return `${mon.getMonth()+1}/${mon.getDate()}-${sun.getMonth()+1}/${sun.getDate()}`;
+}
+
+function groupVals(dates, vals, period) {
+  if (period === 'daily') return { labels: dates, vals };
+  const g = {};
+  dates.forEach((d, i) => {
+    const k = period === 'weekly' ? weekKey(d) : d.split('/')[0] + '/26';
+    g[k] = (g[k] || 0) + vals[i];
+  });
+  return { labels: Object.keys(g), vals: Object.values(g) };
+}
+
+function totalVals() {
+  return S.dates.map((_, i) => SKUS.reduce((s, sk) => s + (S.data[sk] ? S.data[sk][i] : 0), 0));
+}
+
+function skuTotals() {
+  const t = {};
+  SKUS.forEach(sk => { t[sk] = S.data[sk] ? S.data[sk].reduce((a,b)=>a+b,0) : 0; });
+  return t;
+}
+
+function groupedSkus() {
+  const g = {};
+  SKUS.forEach(sk => {
+    if (!S.data[sk]) return;
+    const r = groupVals(S.dates, S.data[sk], S.period);
+    if (!g._labels) g._labels = r.labels;
+    g[sk] = r.vals;
+  });
+  return g;
+}
+
+// ── Formatting ────────────────────────────────────────────────────────────────
+function fmtV(v) {
+  if (S.mode === 'revenue') return '$' + Math.round(v).toLocaleString();
+  return Math.round(v).toLocaleString();
+}
+function fmtK(v) {
+  if (S.mode === 'revenue') {
+    if (v >= 1000) return '$' + Math.round(v / 1000) + 'k';
+    return '$' + Math.round(v);
+  }
+  return Math.round(v);
+}
+
+// ── Chart helpers ─────────────────────────────────────────────────────────────
+function dc(k) { if (S.charts[k]) { S.charts[k].destroy(); delete S.charts[k]; } }
+
+const gridColor = 'rgba(0,0,0,0.05)';
+const tickFont = { family: "'DM Mono', monospace", size: 10 };
+
+function baseScales(stacked) {
+  return {
+    x: {
+      stacked,
+      ticks: { font: tickFont, color: '#9ca3af', autoSkip: true, maxRotation: 0, maxTicksLimit: 14 },
+      grid: { display: false },
+      border: { display: false }
+    },
+    y: {
+      stacked,
+      ticks: { callback: v => fmtK(v), font: tickFont, color: '#9ca3af' },
+      grid: { color: gridColor, drawBorder: false },
+      border: { display: false }
+    }
+  };
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function render() {
+  const { dates, data, mode, period } = S;
+  if (!dates || !dates.length) return;
+
+  const li = dates.length - 1, pi = li - 1;
+  const tv = totalVals();
+  const grand = tv.reduce((a,b) => a+b, 0);
+  const yest = tv[li] || 0;
+  const prev = tv[pi] || 0;
+  const dod = prev ? ((yest - prev) / prev * 100).toFixed(0) : null;
+  const gtAmpTot = data['325512'] ? data['325512'].reduce((a,b)=>a+b,0) : 0;
+  const gtAmpPct = grand ? Math.round(gtAmpTot / grand * 100) : 0;
+  const dailyAvg = tv.length ? grand / tv.length : 0;
+  const peak = Math.max(...tv), low = Math.min(...tv);
+
+  const gtTot = ['325512','325511','325510'].reduce((s,sk)=>s+(data[sk]?data[sk].reduce((a,b)=>a+b,0):0), 0);
+  const stTot = ['325513','325514'].reduce((s,sk)=>s+(data[sk]?data[sk].reduce((a,b)=>a+b,0):0), 0);
+  const lineTotal = gtTot + stTot;
+  const gtPct = lineTotal ? (gtTot/lineTotal*100).toFixed(1) : 50;
+  const stPct = lineTotal ? (stTot/lineTotal*100).toFixed(1) : 50;
+  const st = skuTotals();
+
+  // Flags
+  const flags = [];
+  SKUS.forEach(sk => { if (data[sk] && data[sk][li] === 0) flags.push(`Zero sales on ${META[sk].short} yesterday (${dates[li]})`); });
+  if (lineTotal && stTot / lineTotal < 0.25) flags.push(`SCALP:TURN share below 25% — currently ${(stTot/lineTotal*100).toFixed(1)}%`);
+  if (gtAmpPct < 40) flags.push(`GT Ampoule share below 40% — currently ${gtAmpPct}%`);
+  const flagBar = document.getElementById('flagBar');
+  flagBar.innerHTML = flags.map(f => `<div class="flag">${f}</div>`).join('');
+
+  // Metric cards
+  document.getElementById('mc1label').textContent = mode === 'revenue' ? 'Total Revenue' : 'Total Units';
+  document.getElementById('mc1value').textContent = fmtV(grand);
+  document.getElementById('mc1sub').textContent = `Across ${dates.length} days`;
+
+  document.getElementById('mc2label').textContent = `Yesterday · ${dates[li]}`;
+  document.getElementById('mc2value').textContent = fmtV(yest);
+  document.getElementById('mc2sub').innerHTML = dod !== null
+    ? `<span class="${dod > 0 ? 'up' : 'down'}">${dod > 0 ? '↑' : '↓'}${Math.abs(dod)}%</span> vs prior day`
+    : '—';
+
+  document.getElementById('mc3value').textContent = fmtV(gtAmpTot);
+  document.getElementById('mc3sub').textContent = `${gtAmpPct}% of total`;
+
+  document.getElementById('mc4value').textContent = fmtV(Math.round(dailyAvg));
+  document.getElementById('mc4sub').textContent = `Peak ${fmtV(peak)} · Low ${fmtV(low)}`;
+
+  // SKU Legend
+  document.getElementById('skuLegend').innerHTML = SKUS.map(sk =>
+    `<span class="legend-item"><span class="legend-swatch" style="background:${META[sk].color}"></span>${META[sk].short}</span>`
+  ).join('');
+
+  // Total chart
+  const tg = groupVals(dates, tv, period);
+  dc('total');
+  const tcCtx = document.getElementById('cTotal');
+  S.charts.total = new Chart(tcCtx, {
+    type: S.tType,
+    data: {
+      labels: tg.labels,
+      datasets: [{
+        label: 'Sales',
+        data: tg.vals,
+        backgroundColor: S.tType === 'bar' ? '#378ADD33' : '#378ADD',
+        borderColor: '#378ADD',
+        borderWidth: S.tType === 'line' ? 2 : 1,
+        fill: false, tension: 0.35,
+        pointRadius: S.tType === 'line' ? 3 : 0,
+        pointHoverRadius: 5,
+        borderRadius: S.tType === 'bar' ? 4 : 0,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => fmtV(c.raw) } },
+        datalabels: {
+          display: S.tType === 'bar',
+          anchor: 'end', align: 'top',
+          formatter: v => fmtK(v),
+          font: { family: "'DM Mono', monospace", size: 9 },
+          color: '#6b7280'
+        }
+      },
+      scales: baseScales(false),
+      layout: { padding: { top: S.tType === 'bar' ? 20 : 8 } }
+    }
+  });
+
+  // SKU chart
+  const sg = groupedSkus();
+  const isStack = S.skType === 'stacked';
+  const skCtype = isStack ? 'bar' : S.skType;
+  dc('sku');
+  S.charts.sku = new Chart(document.getElementById('cSku'), {
+    type: skCtype,
+    data: {
+      labels: sg._labels || [],
+      datasets: SKUS.filter(sk => sg[sk]).map(sk => ({
+        label: META[sk].short,
+        data: sg[sk],
+        backgroundColor: skCtype === 'line' ? META[sk].color + '22' : META[sk].color + 'BB',
+        borderColor: META[sk].color,
+        borderWidth: skCtype === 'line' ? 2 : 1,
+        fill: false, tension: 0.35,
+        pointRadius: skCtype === 'line' ? 3 : 0,
+        pointHoverRadius: 4,
+        borderRadius: skCtype === 'bar' ? 3 : 0,
+        borderSkipped: false,
+        stack: isStack ? 'stack' : undefined
+      }))
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmtV(c.raw)}` } },
+        datalabels: { display: false }
+      },
+      scales: baseScales(isStack)
+    }
+  });
+
+  // WoW
+  const wowSection = document.getElementById('wowSection');
+  if (dates.length >= 14) {
+    wowSection.style.display = '';
+    const w1s = li - 6;
+    const w2s = li - 13;
+    document.getElementById('wowTitle').textContent =
+      `WoW · ${dates[w2s]}–${dates[w1s-1]} vs ${dates[w1s]}–${dates[li]}`;
+    const wowGrid = document.getElementById('wowGrid');
+    wowGrid.innerHTML = SKUS.map(sk => {
+      if (!data[sk]) return '';
+      const w1 = data[sk].slice(w1s, li+1).reduce((a,b)=>a+b,0);
+      const w2 = data[sk].slice(w2s, w1s).reduce((a,b)=>a+b,0);
+      const p = w2 ? ((w1-w2)/w2*100).toFixed(0) : null;
+      return `<div class="wow-card">
+        <div class="wow-sku">${META[sk].short}</div>
+        <div class="wow-val">${fmtV(w1)}</div>
+        <div class="wow-pct" style="color:${p>0?'#1D9E75':p<0?'#D85A30':'#6b7280'}">${p!==null?(p>0?'↑':'↓')+Math.abs(p)+'%':'—'}</div>
+      </div>`;
+    }).join('');
+  } else {
+    wowSection.style.display = 'none';
+  }
+
+  // Donut
+  dc('donut');
+  S.charts.donut = new Chart(document.getElementById('cDonut'), {
+    type: 'doughnut',
+    data: {
+      labels: ['GROW:TURN', 'SCALP:TURN'],
+      datasets: [{ data: [gtTot, stTot], backgroundColor: ['#378ADD', '#D4537E'], borderWidth: 0, hoverOffset: 4 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '62%',
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => `${c.label}: ${fmtV(c.raw)} (${(c.raw/lineTotal*100).toFixed(1)}%)` } },
+        datalabels: { display: false }
+      }
+    }
+  });
+  document.getElementById('donutLegend').innerHTML = [
+    { label: 'GROW:TURN', color: '#378ADD', pct: gtPct },
+    { label: 'SCALP:TURN', color: '#D4537E', pct: stPct }
+  ].map(x => `<div class="donut-legend-item">
+    <span class="dl-left"><span class="legend-swatch" style="background:${x.color}"></span>${x.label}</span>
+    <span class="dl-pct">${x.pct}%</span>
+  </div>`).join('');
+
+  // Per-SKU bar or pie
+  renderPerSku(st, grand);
+}
+
+function renderPerSku(st, grand) {
+  if (S.pmType === 'bar') {
+    document.getElementById('perSkuBar').style.display = '';
+    document.getElementById('perSkuPie').style.display = 'none';
+    const maxV = Math.max(...Object.values(st));
+    document.getElementById('perSkuBar').innerHTML = SKUS.map(sk => {
+      const v = st[sk], p = grand ? (v/grand*100).toFixed(1) : 0;
+      const w = maxV ? (v/maxV*100) : 0;
+      return `<div class="sku-bar-row">
+        <span class="sku-bar-label">${META[sk].short}</span>
+        <div class="sku-bar-track"><div class="sku-bar-fill" style="width:${w}%;background:${META[sk].color}"></div></div>
+        <span class="sku-bar-meta">${fmtV(v)} (${p}%)</span>
+      </div>`;
+    }).join('');
+  } else {
+    document.getElementById('perSkuBar').style.display = 'none';
+    document.getElementById('perSkuPie').style.display = '';
+    dc('pie');
+    S.charts.pie = new Chart(document.getElementById('cPie'), {
+      type: 'pie',
+      data: {
+        labels: SKUS.map(sk => META[sk].short),
+        datasets: [{
+          data: SKUS.map(sk => st[sk]),
+          backgroundColor: SKUS.map(sk => META[sk].color),
+          borderWidth: 2, borderColor: '#fff'
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: c => `${c.label}: ${(c.raw/grand*100).toFixed(1)}%` } },
+          datalabels: {
+            display: true,
+            formatter: (v) => grand ? (v/grand*100).toFixed(1)+'%' : '',
+            color: '#fff',
+            font: { family: "'DM Mono', monospace", size: 10, weight: '500' }
+          }
+        }
+      }
+    });
+    const totals = skuTotals();
+    const g = Object.values(totals).reduce((a,b)=>a+b,0);
+    document.getElementById('pieLegend').innerHTML = SKUS.map(sk => {
+      const p = g ? (totals[sk]/g*100).toFixed(1) : 0;
+      return `<div class="pie-legend-item">
+        <span class="pie-legend-left"><span class="legend-swatch" style="background:${META[sk].color}"></span>${META[sk].short}</span>
+        <span class="pie-legend-pct">${p}%</span>
+      </div>`;
+    }).join('');
+  }
+}
+
+// ── Toggle handlers ───────────────────────────────────────────────────────────
+function activateBtn(groupId, value, fnMap) {
+  const btns = document.getElementById(groupId).querySelectorAll('button');
+  btns.forEach(b => b.classList.toggle('active', b.textContent.toLowerCase() === value.toLowerCase() || b.onclick.toString().includes(`'${value}'`)));
+}
+
+window.setMode = function(m) {
+  S.mode = m;
+  S.dates = m === 'units' ? S.qty.dates : S.amt.dates;
+  S.data  = m === 'units' ? S.qty.data  : S.amt.data;
+  document.querySelectorAll('#modeToggle button').forEach(b => b.classList.toggle('active', b.getAttribute('onclick').includes(m)));
+  render();
+};
+window.setPeriod = function(p) {
+  S.period = p;
+  document.querySelectorAll('#periodToggle button').forEach(b => b.classList.toggle('active', b.getAttribute('onclick').includes(p)));
+  render();
+};
+window.setTotalType  = function(v) { S.tType = v;  document.querySelectorAll('.chart-section:nth-of-type(1) .chart-toggle button').forEach(b=>b.classList.toggle('active',b.getAttribute('onclick').includes(v))); render(); };
+window.setSkuType    = function(v) { S.skType = v; document.querySelectorAll('.chart-section:nth-of-type(2) .chart-toggle button').forEach(b=>b.classList.toggle('active',b.getAttribute('onclick').includes(v))); render(); };
+window.setPerSkuType = function(v) { S.pmType = v; const st=skuTotals(),g=Object.values(st).reduce((a,b)=>a+b,0); renderPerSku(st,g); };
+
+// ── Load ──────────────────────────────────────────────────────────────────────
+(async () => {
+  const main = document.querySelector('.main');
+  const loading = document.createElement('div');
+  loading.className = 'loading-state';
+  loading.innerHTML = '<div class="loading-spinner"></div>Loading live data from Watsons TW…';
+  main.prepend(loading);
+
+  try {
+    const [qr, ar] = await Promise.all([fetch(QURL), fetch(AURL)]);
+    if (!qr.ok || !ar.ok) throw new Error(`HTTP ${qr.status} / ${ar.status}`);
+    const [qt, at] = await Promise.all([qr.text(), ar.text()]);
+    S.qty = processSheet(parseCSV(qt));
+    S.amt = processSheet(parseCSV(at));
+    S.dates = S.amt.dates;
+    S.data  = S.amt.data;
+    loading.remove();
+    if (!S.dates.length) throw new Error('No data rows found — check sheet tab names match exactly.');
+    document.getElementById('lastUpdated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' }) + ' · ' + new Date().toLocaleDateString('en-GB');
+    render();
+  } catch(e) {
+    loading.remove();
+    const err = document.createElement('div');
+    err.className = 'error-state';
+    err.innerHTML = `<strong>Could not load data.</strong><br><br>Make sure the Google Sheet is set to <em>Anyone with the link → Viewer</em>.<br><br>Error: ${e.message}`;
+    main.prepend(err);
+  }
+})();
+</script>
+</body>
+</html>
