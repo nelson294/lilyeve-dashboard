@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>lilyeve × Watsons TW — Live Sales Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{--bg:#f9fafb;--surface:#fff;--border:#e5e7eb;--text:#111827;--text2:#6b7280;--text3:#9ca3af;--up:#1D9E75;--down:#D85A30;--r:10px;--rs:6px}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+  .header{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+  .header-left{display:flex;align-items:center;gap:12px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--up);box-shadow:0 0 0 3px rgba(29,158,117,.2);animation:pulse 2s ease-in-out infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(29,158,117,.2)}50%{box-shadow:0 0 0 6px rgba(29,158,117,.08)}}
+  .header h1{font-size:14px;font-weight:600;letter-spacing:-.01em}
+  .header-sub{font-size:11px;color:var(--text2);margin-top:1px;font-family:'DM Mono',monospace}
+  .header-time{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace}
+  .main{max-width:1100px;margin:0 auto;padding:24px 28px}
+  .flag-bar{margin-bottom:16px;display:flex;flex-direction:column;gap:6px}
+  .flag{background:#fffbeb;border:1px solid #fcd34d;border-radius:var(--rs);padding:8px 12px;font-size:12px;color:#92400e;display:flex;align-items:center;gap:8px}
+  .flag::before{content:'⚠'}
+  .controls{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+  .cg{display:flex;gap:6px;align-items:center}
+  .cl{font-size:11px;color:var(--text2);font-weight:500;letter-spacing:.05em;text-transform:uppercase;margin-right:4px}
+  .bg{display:flex;border:1px solid var(--border);border-radius:var(--rs);overflow:hidden}
+  .bg button{padding:5px 13px;font-size:12px;font-weight:500;background:transparent;border:none;cursor:pointer;color:var(--text2);font-family:'DM Sans',sans-serif;transition:all .15s}
+  .bg button+button{border-left:1px solid var(--border)}
+  .bg button.active{background:var(--text);color:#fff}
+  .bg button:hover:not(.active){background:var(--bg);color:var(--text)}
+  .mg{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+  .mc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px}
+  .mc .lbl{font-size:10px;font-weight:600;color:var(--text2);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
+  .mc .val{font-size:24px;font-weight:600;letter-spacing:-.02em;line-height:1;font-family:'DM Mono',monospace}
+  .mc .sub{font-size:11px;color:var(--text2);margin-top:5px}
+  .up{color:var(--up);font-weight:500}.down{color:var(--down);font-weight:500}
+  .cs{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;margin-bottom:16px}
+  .sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+  .st{font-size:11px;font-weight:600;color:var(--text2);letter-spacing:.08em;text-transform:uppercase}
+  .ct{display:flex;gap:4px}
+  .ct button{padding:3px 10px;font-size:11px;font-weight:500;background:transparent;border:1px solid var(--border);border-radius:4px;cursor:pointer;color:var(--text2);font-family:'DM Sans',sans-serif;transition:all .15s}
+  .ct button.active{border-color:var(--text);color:var(--text);background:var(--bg)}
+  .ct button:hover:not(.active){background:var(--bg)}
+  .cw{position:relative;width:100%}
+  .leg{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+  .li{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2)}
+  .ls{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+  .wg{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+  .wc{background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px}
+  .wn{font-size:10px;font-weight:600;color:var(--text2);letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px}
+  .wv{font-size:14px;font-weight:600;font-family:'DM Mono',monospace}
+  .wp{font-size:11px;margin-top:2px;font-weight:500}
+  .mixg{display:grid;grid-template-columns:200px 1fr;gap:20px;align-items:start}
+  .dc{display:flex;flex-direction:column;align-items:center}
+  .dl{display:flex;flex-direction:column;gap:6px;margin-top:12px;width:100%}
+  .dli{display:flex;align-items:center;justify-content:space-between;font-size:11px}
+  .dll{display:flex;align-items:center;gap:6px;color:var(--text2)}
+  .dlp{font-weight:600;font-family:'DM Mono',monospace}
+  .sbs{display:flex;flex-direction:column;gap:9px}
+  .sbr{display:flex;align-items:center;gap:10px}
+  .sbl2{font-size:11px;color:var(--text2);width:62px;flex-shrink:0;text-align:right}
+  .sbt{flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden;border:1px solid var(--border)}
+  .sbf{height:100%;border-radius:4px;transition:width .6s ease}
+  .sbm{font-size:11px;color:var(--text2);width:120px;flex-shrink:0;font-family:'DM Mono',monospace}
+  .pleg{display:flex;flex-direction:column;gap:7px;margin-top:12px}
+  .pli{display:flex;align-items:center;justify-content:space-between;font-size:11px}
+  .pll{display:flex;align-items:center;gap:6px;color:var(--text2)}
+  .plp{font-weight:600;font-family:'DM Mono',monospace}
+  .loading-state{text-align:center;padding:60px 20px;color:var(--text2);font-size:13px}
+  .spin{width:28px;height:28px;border:2px solid var(--border);border-top-color:var(--text);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .err{background:#fef2f2;border:1px solid #fecaca;border-radius:var(--r);padding:20px;color:#991b1b;font-size:13px;line-height:1.6}
+  @media(max-width:768px){.main{padding:16px}.mg{grid-template-columns:repeat(2,1fr)}.wg{grid-template-columns:repeat(2,1fr)}.mixg{grid-template-columns:1fr}.header{padding:12px 16px}}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-left">
+    <div class="dot"></div>
+    <div>
+      <h1>lilyeve × Watsons TW — Live Sales Dashboard</h1>
+      <div class="header-sub">Watsons TW · Launch 21 May 2026 · 5 SKUs</div>
+    </div>
+  </div>
+  <div class="header-time" id="lastUpdated">Loading…</div>
+</div>
+
+<div class="main">
+  <div id="flagBar" class="flag-bar"></div>
+  <div class="controls">
+    <div class="cg">
+      <span class="cl">Period</span>
+      <div class="bg" id="pToggle">
+        <button class="active" onclick="setPeriod('daily')">Daily</button>
+        <button onclick="setPeriod('weekly')">Weekly</button>
+        <button onclick="setPeriod('monthly')">Monthly</button>
+      </div>
+    </div>
+    <div class="cg">
+      <span class="cl">View</span>
+      <div class="bg" id="mToggle">
+        <button onclick="setMode('units')">Units</button>
+        <button class="active" onclick="setMode('revenue')">Revenue (NTD)</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="mg">
+    <div class="mc"><div class="lbl" id="mc1l">Total Revenue</div><div class="val" id="mc1v">—</div><div class="sub" id="mc1s">—</div></div>
+    <div class="mc"><div class="lbl" id="mc2l">Yesterday</div><div class="val" id="mc2v">—</div><div class="sub" id="mc2s">—</div></div>
+    <div class="mc"><div class="lbl">GT Ampoule Share</div><div class="val" id="mc3v">—</div><div class="sub" id="mc3s">—</div></div>
+    <div class="mc"><div class="lbl">Daily Avg</div><div class="val" id="mc4v">—</div><div class="sub" id="mc4s">—</div></div>
+  </div>
+
+  <div class="cs">
+    <div class="sh">
+      <span class="st">Total Sales — All SKUs</span>
+      <div class="ct" id="ttog">
+        <button class="active" onclick="setTT('bar')">Bar</button>
+        <button onclick="setTT('line')">Line</button>
+      </div>
+    </div>
+    <div class="cw" style="height:220px"><canvas id="cTotal" role="img" aria-label="Total sales chart"></canvas></div>
+  </div>
+
+  <div class="cs">
+    <div class="sh">
+      <span class="st">Sales by SKU</span>
+      <div class="ct" id="stog">
+        <button class="active" onclick="setST('line')">Line</button>
+        <button onclick="setST('bar')">Bar</button>
+        <button onclick="setST('stacked')">Stacked</button>
+      </div>
+    </div>
+    <div class="leg" id="skuLeg"></div>
+    <div class="cw" style="height:240px"><canvas id="cSku" role="img" aria-label="SKU sales chart"></canvas></div>
+  </div>
+
+  <div class="cs" id="wowSec" style="display:none">
+    <div class="sh"><span class="st" id="wowTitle">Week-on-Week</span></div>
+    <div class="wg" id="wowGrid"></div>
+  </div>
+
+  <div class="cs">
+    <div class="sh"><span class="st">Product Line Split</span></div>
+    <div class="mixg">
+      <div class="dc">
+        <div class="cw" style="height:160px;width:160px"><canvas id="cDonut" role="img" aria-label="Product line donut"></canvas></div>
+        <div class="dl" id="donutLeg"></div>
+      </div>
+      <div>
+        <div class="sh" style="margin-bottom:14px">
+          <span class="st">Total per SKU</span>
+          <div class="ct" id="pmtog">
+            <button class="active" onclick="setPM('bar')">Bar</button>
+            <button onclick="setPM('pie')">Pie</button>
+          </div>
+        </div>
+        <div id="perSkuBar" class="sbs"></div>
+        <div id="perSkuPie" style="display:none">
+          <div class="cw" style="height:180px;width:180px;margin:0 auto"><canvas id="cPie" role="img" aria-label="SKU pie chart"></canvas></div>
+          <div class="pleg" id="pieLeg"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+Chart.register(ChartDataLabels);
+
+const SKUS = ['325512','325511','325510','325513','325514'];
+const META = {
+  '325512':{name:'GT Ampoule 100ml',short:'GT Amp',line:'GROW:TURN',color:'#378ADD'},
+  '325511':{name:'GT Shampoo 200ml',short:'GT Sh200',line:'GROW:TURN',color:'#1D9E75'},
+  '325510':{name:'GT Shampoo 500ml',short:'GT Sh500',line:'GROW:TURN',color:'#D85A30'},
+  '325513':{name:'ST Shampoo 500ml',short:'ST Sh500',line:'SCALP:TURN',color:'#BA7517'},
+  '325514':{name:'ST Ampoule 100ml',short:'ST Amp',line:'SCALP:TURN',color:'#D4537E'}
+};
+const SID = '1tiS3LevIPmNrBAzdwowBXWjk9FB6JVu1oLyvUxeLsNc';
+
+let S = {
+  mode:'revenue',period:'daily',tType:'bar',skType:'line',pmType:'bar',
+  qty:null,amt:null,dates:[],data:{},charts:{}
+};
+
+// JSONP loader — bypasses CORS entirely
+function loadSheetJSONP(sheetName) {
+  return new Promise((resolve, reject) => {
+    const cbName = 'cb_' + sheetName.replace(/\W/g,'_') + '_' + Date.now();
+    const url = `https://docs.google.com/spreadsheets/d/${SID}/gviz/tq?tqx=out:json&tq=select+*&sheet=${encodeURIComponent(sheetName)}&tqx=responseHandler:${cbName}`;
+    const script = document.createElement('script');
+    const timer = setTimeout(() => { cleanup(); reject(new Error('Timeout loading ' + sheetName)); }, 15000);
+    function cleanup() { clearTimeout(timer); delete window[cbName]; if (script.parentNode) script.parentNode.removeChild(script); }
+    window[cbName] = function(data) { cleanup(); resolve(data); };
+    script.src = url;
+    script.onerror = () => { cleanup(); reject(new Error('Script load failed for ' + sheetName)); };
+    document.head.appendChild(script);
+  });
+}
+
+function processGViz(gvizData) {
+  const cols = gvizData.table.cols;
+  const rows = gvizData.table.rows;
+  // First col = SKU name, rest = dates
+  const dates = cols.slice(1).map(c => c.label).filter(l => l);
+  const data = {};
+  rows.forEach(row => {
+    if (!row.c || !row.c[0] || !row.c[0].v) return;
+    const raw = String(row.c[0].v);
+    const id = SKUS.find(x => raw.includes(x));
+    if (!id) return;
+    data[id] = row.c.slice(1, dates.length + 1).map(cell => (cell && cell.v != null ? Number(cell.v) : 0));
+  });
+  return { dates, data };
+}
+
+function fmtV(v) {
+  return S.mode === 'revenue' ? '$' + Math.round(v).toLocaleString() : Math.round(v).toLocaleString();
+}
+function fmtK(v) {
+  if (S.mode === 'revenue') return v >= 1000 ? '$' + Math.round(v/1000) + 'k' : '$' + Math.round(v);
+  return Math.round(v);
+}
+
+function weekKey(dateStr) {
+  const [m,d] = dateStr.split('/').map(Number);
+  const dt = new Date(2026, m-1, d);
+  const day = dt.getDay();
+  const mon = new Date(dt); mon.setDate(d-(day===0?6:day-1));
+  const sun = new Date(mon); sun.setDate(mon.getDate()+6);
+  return `${mon.getMonth()+1}/${mon.getDate()}-${sun.getMonth()+1}/${sun.getDate()}`;
+}
+
+function groupVals(dates, vals, period) {
+  if (period === 'daily') return { labels: dates, vals };
+  const g = {};
+  dates.forEach((d,i) => {
+    const k = period === 'weekly' ? weekKey(d) : d.split('/')[0]+'/26';
+    g[k] = (g[k]||0) + vals[i];
+  });
+  return { labels: Object.keys(g), vals: Object.values(g) };
+}
+
+function totalVals() {
+  return S.dates.map((_,i) => SKUS.reduce((s,sk) => s+(S.data[sk]?S.data[sk][i]:0), 0));
+}
+function skuTotals() {
+  const t={};
+  SKUS.forEach(sk => { t[sk] = S.data[sk] ? S.data[sk].reduce((a,b)=>a+b,0) : 0; });
+  return t;
+}
+function groupedSkus() {
+  const g={};
+  SKUS.forEach(sk => {
+    if (!S.data[sk]) return;
+    const r = groupVals(S.dates, S.data[sk], S.period);
+    if (!g._labels) g._labels = r.labels;
+    g[sk] = r.vals;
+  });
+  return g;
+}
+
+function dc(k) { if (S.charts[k]) { S.charts[k].destroy(); delete S.charts[k]; } }
+const gc = 'rgba(0,0,0,0.05)';
+const tf = { family:"'DM Mono',monospace", size:10 };
+function baseScales(stacked) {
+  return {
+    x:{stacked,ticks:{font:tf,color:'#9ca3af',autoSkip:true,maxRotation:0,maxTicksLimit:14},grid:{display:false},border:{display:false}},
+    y:{stacked,ticks:{callback:v=>fmtK(v),font:tf,color:'#9ca3af'},grid:{color:gc,drawBorder:false},border:{display:false}}
+  };
+}
+
+function render() {
+  const {dates,data,mode,period} = S;
+  if (!dates||!dates.length) return;
+
+  const li=dates.length-1, pi=li-1;
+  const tv=totalVals();
+  const grand=tv.reduce((a,b)=>a+b,0);
+  const yest=tv[li]||0, prev=tv[pi]||0;
+  const dod=prev?((yest-prev)/prev*100).toFixed(0):null;
+  const gtAmpTot=data['325512']?data['325512'].reduce((a,b)=>a+b,0):0;
+  const gtAmpPct=grand?Math.round(gtAmpTot/grand*100):0;
+  const dailyAvg=tv.length?grand/tv.length:0;
+  const peak=Math.max(...tv), low=Math.min(...tv);
+  const gtTot=['325512','325511','325510'].reduce((s,sk)=>s+(data[sk]?data[sk].reduce((a,b)=>a+b,0):0),0);
+  const stTot=['325513','325514'].reduce((s,sk)=>s+(data[sk]?data[sk].reduce((a,b)=>a+b,0):0),0);
+  const lineTotal=gtTot+stTot;
+  const gtPct=lineTotal?(gtTot/lineTotal*100).toFixed(1):50;
+  const stPct=lineTotal?(stTot/lineTotal*100).toFixed(1):50;
+  const st=skuTotals();
+
+  // Flags
+  const flags=[];
+  SKUS.forEach(sk=>{if(data[sk]&&data[sk][li]===0)flags.push(`Zero sales on ${META[sk].short} yesterday (${dates[li]})`)});
+  if(lineTotal&&stTot/lineTotal<0.25)flags.push(`SCALP:TURN share below 25% — currently ${(stTot/lineTotal*100).toFixed(1)}%`);
+  if(gtAmpPct<40)flags.push(`GT Ampoule share below 40% — currently ${gtAmpPct}%`);
+  document.getElementById('flagBar').innerHTML=flags.map(f=>`<div class="flag">${f}</div>`).join('');
+
+  // Metric cards
+  document.getElementById('mc1l').textContent=mode==='revenue'?'Total Revenue':'Total Units';
+  document.getElementById('mc1v').textContent=fmtV(grand);
+  document.getElementById('mc1s').textContent=`Across ${dates.length} days`;
+  document.getElementById('mc2l').textContent=`Yesterday · ${dates[li]}`;
+  document.getElementById('mc2v').textContent=fmtV(yest);
+  document.getElementById('mc2s').innerHTML=dod!==null?`<span class="${dod>0?'up':'down'}">${dod>0?'↑':'↓'}${Math.abs(dod)}%</span> vs prior day`:'—';
+  document.getElementById('mc3v').textContent=fmtV(gtAmpTot);
+  document.getElementById('mc3s').textContent=`${gtAmpPct}% of total`;
+  document.getElementById('mc4v').textContent=fmtV(Math.round(dailyAvg));
+  document.getElementById('mc4s').textContent=`Peak ${fmtV(peak)} · Low ${fmtV(low)}`;
+
+  // SKU legend
+  document.getElementById('skuLeg').innerHTML=SKUS.map(sk=>`<span class="li"><span class="ls" style="background:${META[sk].color}"></span>${META[sk].short}</span>`).join('');
+
+  // Total chart
+  const tg=groupVals(dates,tv,period);
+  dc('total');
+  S.charts.total=new Chart(document.getElementById('cTotal'),{
+    type:S.tType,
+    data:{labels:tg.labels,datasets:[{label:'Sales',data:tg.vals,
+      backgroundColor:S.tType==='bar'?'#378ADD33':'#378ADD',
+      borderColor:'#378ADD',borderWidth:S.tType==='line'?2:1,
+      fill:false,tension:0.35,pointRadius:S.tType==='line'?3:0,pointHoverRadius:5,
+      borderRadius:S.tType==='bar'?4:0,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmtV(c.raw)}},
+        datalabels:{display:S.tType==='bar',anchor:'end',align:'top',formatter:v=>fmtK(v),font:{family:"'DM Mono',monospace",size:9},color:'#6b7280'}},
+      scales:baseScales(false),layout:{padding:{top:S.tType==='bar'?20:8}}}
+  });
+
+  // SKU chart
+  const sg=groupedSkus();
+  const isStack=S.skType==='stacked';
+  const skCtype=isStack?'bar':S.skType;
+  dc('sku');
+  S.charts.sku=new Chart(document.getElementById('cSku'),{
+    type:skCtype,
+    data:{labels:sg._labels||[],datasets:SKUS.filter(sk=>sg[sk]).map(sk=>({
+      label:META[sk].short,data:sg[sk],
+      backgroundColor:skCtype==='line'?META[sk].color+'22':META[sk].color+'BB',
+      borderColor:META[sk].color,borderWidth:skCtype==='line'?2:1,
+      fill:false,tension:0.35,pointRadius:skCtype==='line'?3:0,pointHoverRadius:4,
+      borderRadius:skCtype==='bar'?3:0,borderSkipped:false,
+      stack:isStack?'stack':undefined}))},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fmtV(c.raw)}`}},datalabels:{display:false}},
+      scales:baseScales(isStack)}
+  });
+
+  // WoW
+  const wowSec=document.getElementById('wowSec');
+  if(dates.length>=14){
+    wowSec.style.display='';
+    const w1s=li-6,w2s=li-13;
+    document.getElementById('wowTitle').textContent=`WoW · ${dates[w2s]}–${dates[w1s-1]} vs ${dates[w1s]}–${dates[li]}`;
+    document.getElementById('wowGrid').innerHTML=SKUS.map(sk=>{
+      if(!data[sk])return'';
+      const w1=data[sk].slice(w1s,li+1).reduce((a,b)=>a+b,0);
+      const w2=data[sk].slice(w2s,w1s).reduce((a,b)=>a+b,0);
+      const p=w2?((w1-w2)/w2*100).toFixed(0):null;
+      return`<div class="wc"><div class="wn">${META[sk].short}</div><div class="wv">${fmtV(w1)}</div><div class="wp" style="color:${p>0?'#1D9E75':p<0?'#D85A30':'#6b7280'}">${p!==null?(p>0?'↑':'↓')+Math.abs(p)+'%':'—'}</div></div>`;
+    }).join('');
+  } else { wowSec.style.display='none'; }
+
+  // Donut
+  dc('donut');
+  S.charts.donut=new Chart(document.getElementById('cDonut'),{
+    type:'doughnut',
+    data:{labels:['GROW:TURN','SCALP:TURN'],datasets:[{data:[gtTot,stTot],backgroundColor:['#378ADD','#D4537E'],borderWidth:0,hoverOffset:4}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'62%',
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${fmtV(c.raw)} (${(c.raw/lineTotal*100).toFixed(1)}%)`}},datalabels:{display:false}}}
+  });
+  document.getElementById('donutLeg').innerHTML=[
+    {label:'GROW:TURN',color:'#378ADD',pct:gtPct},
+    {label:'SCALP:TURN',color:'#D4537E',pct:stPct}
+  ].map(x=>`<div class="dli"><span class="dll"><span class="ls" style="background:${x.color}"></span>${x.label}</span><span class="dlp">${x.pct}%</span></div>`).join('');
+
+  renderPerSku(st,grand);
+}
+
+function renderPerSku(st,grand) {
+  if(S.pmType==='bar'){
+    document.getElementById('perSkuBar').style.display='';
+    document.getElementById('perSkuPie').style.display='none';
+    const maxV=Math.max(...Object.values(st));
+    document.getElementById('perSkuBar').innerHTML=SKUS.map(sk=>{
+      const v=st[sk],p=grand?(v/grand*100).toFixed(1):0,w=maxV?(v/maxV*100):0;
+      return`<div class="sbr"><span class="sbl2">${META[sk].short}</span><div class="sbt"><div class="sbf" style="width:${w}%;background:${META[sk].color}"></div></div><span class="sbm">${fmtV(v)} (${p}%)</span></div>`;
+    }).join('');
+  } else {
+    document.getElementById('perSkuBar').style.display='none';
+    document.getElementById('perSkuPie').style.display='';
+    dc('pie');
+    S.charts.pie=new Chart(document.getElementById('cPie'),{
+      type:'pie',
+      data:{labels:SKUS.map(sk=>META[sk].short),datasets:[{data:SKUS.map(sk=>st[sk]),backgroundColor:SKUS.map(sk=>META[sk].color),borderWidth:2,borderColor:'#fff'}]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${(c.raw/grand*100).toFixed(1)}%`}},
+          datalabels:{display:true,formatter:v=>grand?(v/grand*100).toFixed(1)+'%':'',color:'#fff',font:{family:"'DM Mono',monospace",size:10,weight:'500'}}}}
+    });
+    document.getElementById('pieLeg').innerHTML=SKUS.map(sk=>{
+      const p=grand?(st[sk]/grand*100).toFixed(1):0;
+      return`<div class="pli"><span class="pll"><span class="ls" style="background:${META[sk].color}"></span>${META[sk].short}</span><span class="plp">${p}%</span></div>`;
+    }).join('');
+  }
+}
+
+// Toggle handlers
+window.setMode=function(m){
+  S.mode=m;S.dates=m==='units'?S.qty.dates:S.amt.dates;S.data=m==='units'?S.qty.data:S.amt.data;
+  document.querySelectorAll('#mToggle button').forEach(b=>b.classList.toggle('active',b.getAttribute('onclick').includes(m)));
+  render();
+};
+window.setPeriod=function(p){
+  S.period=p;
+  document.querySelectorAll('#pToggle button').forEach(b=>b.classList.toggle('active',b.getAttribute('onclick').includes(p)));
+  render();
+};
+window.setTT=function(v){S.tType=v;document.querySelectorAll('#ttog button').forEach(b=>b.classList.toggle('active',b.getAttribute('onclick').includes(v)));render();};
+window.setST=function(v){S.skType=v;document.querySelectorAll('#stog button').forEach(b=>b.classList.toggle('active',b.getAttribute('onclick').includes(v)));render();};
+window.setPM=function(v){S.pmType=v;document.querySelectorAll('#pmtog button').forEach(b=>b.classList.toggle('active',b.getAttribute('onclick').includes(v)));const st=skuTotals(),g=Object.values(st).reduce((a,b)=>a+b,0);renderPerSku(st,g);};
+
+// Load via JSONP
+(async()=>{
+  const main=document.querySelector('.main');
+  const loading=document.createElement('div');
+  loading.className='loading-state';
+  loading.innerHTML='<div class="spin"></div>Loading live data from Watsons TW…';
+  main.prepend(loading);
+
+  try {
+    const [qRaw,aRaw]=await Promise.all([
+      loadSheetJSONP('Sales Qty (Units)'),
+      loadSheetJSONP('Sales Amount (NTD)')
+    ]);
+    S.qty=processGViz(qRaw);
+    S.amt=processGViz(aRaw);
+    S.dates=S.amt.dates;
+    S.data=S.amt.data;
+    loading.remove();
+    if(!S.dates.length) throw new Error('No data found. Check sheet tab names: "Sales Qty (Units)" and "Sales Amount (NTD)"');
+    document.getElementById('lastUpdated').textContent=
+      'Updated '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})+
+      ' · '+new Date().toLocaleDateString('en-GB');
+    render();
+  } catch(e) {
+    loading.remove();
+    const err=document.createElement('div');
+    err.className='err';
+    err.innerHTML=`<strong>Could not load data.</strong><br><br>Error: ${e.message}<br><br>Ensure the sheet is set to <em>Anyone with the link → Viewer</em> and tab names match exactly.`;
+    main.prepend(err);
+  }
+})();
+</script>
+</body>
+</html>
