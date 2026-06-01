@@ -201,16 +201,40 @@ async function loadSheetJSONP(sheetName) {
 function processGViz(gvizData) {
   const cols = gvizData.table.cols;
   const rows = gvizData.table.rows;
-  // First col = SKU name, rest = dates
-  const dates = cols.slice(1).map(c => c.label).filter(l => l);
+
+  // Sheet structure:
+  // Row 0: title row (skip)
+  // Row 1: headers — col0=#, col1=SKU, col2=ProductName, col3+=dates
+  // Rows 2-6: data rows
+  // Last row: TOTAL (skip)
+
+  // Get date labels from header row (row index 1), starting col 3
+  const headerRow = rows[1];
+  if (!headerRow) return { dates: [], data: {} };
+  const dates = headerRow.c.slice(3).map(cell => {
+    if (!cell || cell.v == null) return null;
+    const v = String(cell.v).trim();
+    // Handle date objects or strings like "5/20"
+    if (v.includes('/')) return v;
+    // Google may return Date objects as "Date(2026,4,20)" format
+    const dm = v.match(/Date\((\d+),(\d+),(\d+)\)/);
+    if (dm) return `${parseInt(dm[2])+1}/${parseInt(dm[3])}`;
+    return v;
+  }).filter(d => d && d !== 'null');
+
   const data = {};
-  rows.forEach(row => {
-    if (!row.c || !row.c[0] || !row.c[0].v) return;
-    const raw = String(row.c[0].v);
+  // Data rows start at index 2, skip last row (TOTAL)
+  for (let r = 2; r < rows.length - 1; r++) {
+    const row = rows[r];
+    if (!row || !row.c) continue;
+    // SKU is in column index 1
+    const skuCell = row.c[1];
+    if (!skuCell || skuCell.v == null) continue;
+    const raw = String(skuCell.v).trim();
     const id = SKUS.find(x => raw.includes(x));
-    if (!id) return;
-    data[id] = row.c.slice(1, dates.length + 1).map(cell => (cell && cell.v != null ? Number(cell.v) : 0));
-  });
+    if (!id) continue;
+    data[id] = row.c.slice(3, 3 + dates.length).map(cell => (cell && cell.v != null ? Number(cell.v) : 0));
+  }
   return { dates, data };
 }
 
