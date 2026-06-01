@@ -186,19 +186,16 @@ let S = {
   qty:null,amt:null,dates:[],data:{},charts:{}
 };
 
-// JSONP loader — bypasses CORS entirely
-function loadSheetJSONP(sheetName) {
-  return new Promise((resolve, reject) => {
-    const cbName = 'cb_' + sheetName.replace(/\W/g,'_') + '_' + Date.now();
-    const url = `https://docs.google.com/spreadsheets/d/${SID}/gviz/tq?tqx=out:json&tq=select+*&sheet=${encodeURIComponent(sheetName)}&tqx=responseHandler:${cbName}`;
-    const script = document.createElement('script');
-    const timer = setTimeout(() => { cleanup(); reject(new Error('Timeout loading ' + sheetName)); }, 15000);
-    function cleanup() { clearTimeout(timer); delete window[cbName]; if (script.parentNode) script.parentNode.removeChild(script); }
-    window[cbName] = function(data) { cleanup(); resolve(data); };
-    script.src = url;
-    script.onerror = () => { cleanup(); reject(new Error('Script load failed for ' + sheetName)); };
-    document.head.appendChild(script);
-  });
+// Fetch sheet data — strips Google's wrapper and parses JSON
+async function loadSheetJSONP(sheetName) {
+  const url = `https://docs.google.com/spreadsheets/d/${SID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status} for ${sheetName}`);
+  const text = await res.text();
+  // Google wraps response in: /*O_o*/\ngoogle.visualization.Query.setResponse({...});
+  const match = text.match(/google\.visualization\.Query\.setResponse\((.+)\);?\s*$/s);
+  if (!match) throw new Error('Unexpected response format for ' + sheetName);
+  return JSON.parse(match[1]);
 }
 
 function processGViz(gvizData) {
